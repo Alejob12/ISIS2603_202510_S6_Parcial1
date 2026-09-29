@@ -64,14 +64,34 @@ public class RutaEstacionServiceTest {
         assertThrows(EntityNotFoundException.class, () -> rutaEstacionService.addEstacionRuta(999L, ruta.getId()));
         assertThrows(EntityNotFoundException.class, () -> rutaEstacionService.addEstacionRuta(estacion.getId(), 999L));
     }
+
+    @Test
+    void testAddEstacionRutaCircularConCapacidadBajaNoPermitido() {
+        estacion.setCapacidad(50);
+        for (int i = 0; i < 2; i++) {
+            RutaEntity circular = factory.manufacturePojo(RutaEntity.class);
+            circular.setTipo("circular");
+            entityManager.persist(circular);
+            estacion.getRutas().add(circular);
+            circular.getEstaciones().add(estacion);
+        }
+        entityManager.persist(estacion);
+        ruta.setTipo("circular");
+        entityManager.persist(ruta);
+
+        assertThrows(IllegalStateException.class, () -> rutaEstacionService.addEstacionRuta(estacion.getId(), ruta.getId()));
+        assertFalse(estacion.getRutas().contains(ruta));
+    }
+
+    @Test
+    void testRemoveUltimaRutaNocturnaNoPermitido() {
+        ruta.setTipo("nocturna");
+        estacion.getRutas().add(ruta);
+        ruta.getEstaciones().add(estacion);
+        entityManager.persist(estacion);
+        entityManager.persist(ruta);
+
+        assertThrows(IllegalStateException.class, () -> rutaEstacionService.removeEstacionRuta(estacion.getId(), ruta.getId()));
+        assertTrue(estacion.getRutas().contains(ruta));
+    }
 }
-
-
-
-
-
-
-
-
-
-
